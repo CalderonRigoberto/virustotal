@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Escaner de URLS</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        display: flex;
+        height: 100vh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .container {
+        margin: 20px;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        max-width: 600px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+
+      button {
+        background-color: #6f8a70;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        cursor: pointer;
+      }
+
+      .result {
+        margin-top: 20px;
+      }
+
+      .overflow-ellipsis {
+        text-overflow: ellipsis;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Escaner de URLS</h1>
+      <input
+        type="text"
+        id="urlInput"
+        placeholder="Introduce la URL a escanear"
+      />
+      <button id="scanButton">Escanear</button>
+      <div class="result" id="resultContainer"></div>
+    </div>
+
+    <script>
+      const scanButton = document.getElementById("scanButton");
+      const urlInput = document.getElementById("urlInput");
+      const resultContainer = document.getElementById("resultContainer");
+
+      scanButton.addEventListener("click", () => {
+        const urlValue = urlInput.value;
+
+        // Si la url no es válida no avanza a realizar la petición
+        if (!isValidURL(urlValue)) {
+          resultContainer.innerText = `Error: Intenta con una url válida`;
+          return;
+        }
+
+        if (urlValue) {
+          const apiKey =
+            "6ae21a4f527c36daa7e9e0bc614c125339d59696bd13040a20d95f9292109c9d";
+          const apiUrl = `https://www.virustotal.com/api/v3/urls?url=${urlValue}`;
+
+          fetch(apiUrl, {
+            method: "POST",
+            headers: {
+              "x-apikey": apiKey,
+            },
+            params: {},
+          })
+            .then((response) => response.json())
+            .then(async (data) => {
+              await drawResults(data, resultContainer);
+            })
+            .catch((error) => {
+              resultContainer.innerText = `Error: ${error.message}`;
+            });
+        }
+      });
+
+      // Obtiene el id para la url, se usan expresiones regular para obtener
+      // el valor
+      async function getIdToURL(value) {
+        const reg = /-(.*?)-/;
+        const coincidence = reg.exec(value);
+
+        return coincidence
+          ? coincidence[1]
+          : (() => {
+              throw new Error("No es una id válido");
+            })();
+      }
+
+      // Se usa para dibujar los resultados una vez que se haya obtenido una respuesta
+      async function drawResults(data, resultContainer) {
+        const typeParagraph = document.createElement("p");
+        typeParagraph.textContent = `Tipo de Análisis: ${data.data.type}`;
+
+        const idParagraph = document.createElement("p");
+        idParagraph.textContent = `ID: ${data.data.id}`;
+
+        const watchResult = document.createElement("a");
+        const link = document.createTextNode("Ver resultado");
+
+        watchResult.appendChild(link);
+        watchResult.title = "Ver analisis";
+        watchResult.setAttribute("target", "_blank");
+
+        const id = await getIdToURL(data.data.id);
+        watchResult.href = `https://www.virustotal.com/gui/url/${id}`;
+
+        resultContainer.appendChild(typeParagraph);
+        resultContainer.appendChild(idParagraph);
+        resultContainer.appendChild(watchResult);
+      }
+
+      // Se usa expresión regular para verificar que es un url válida
+      const isValidURL = (urlString) => {
+        return new RegExp(/^(ftp|http|https):\/\/[^ "]+$/).test(urlString);
+      };
+    </script>
+  </body>
+</html>
